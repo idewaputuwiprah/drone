@@ -38,6 +38,13 @@ class DjiTello:
             msg = "emergency"
             self.sendCommand(msg, sock)
     
+    def moveForward(self, distance, sock):
+        if self.initMode == False:
+            msg = "forward " + str(distance)
+            self.sendCommand(msg, sock)
+        else:
+            self.printError()
+    
     def moveClockWise(self, degree, sock):
         if self.initMode == False:
             msg = "cw " + str(degree)

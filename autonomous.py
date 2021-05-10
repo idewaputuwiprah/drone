@@ -25,7 +25,9 @@ canRecvCommand = False
 # distance = 4.1258092453538096
 # droneBearing = 342.2202850758707
 
-point2 = [-6.588425,106.75856]
+point2 = [-6.557247033333333,106.73343356666685]
+initDistance = -999.0
+totalDistance = 0
 
 FILE = "/home/pi/drone/project/log.txt"
 
@@ -58,6 +60,14 @@ def recv():
             # print ('\nExit . . .\n')
             break
 
+def checkDroneBearing(droneBearing, locBearing):
+    global canSendCommand
+    if abs(droneBearing-locBearing) >= 1:
+        setDroneHeading(droneBearing, locBearing)
+        canSendCommand = False
+    while canSendCommand == False or canRecvCommand == False:
+        pass
+
 def setDroneHeading(droneBearing, locBearing):
     global canSendCommand
     if droneBearing > locBearing:
@@ -66,44 +76,47 @@ def setDroneHeading(droneBearing, locBearing):
     else:
         deg = locBearing - droneBearing
         drone.moveClockWise(floor(deg), sock)
-    drone.atDest = True
+    # drone.atDest = True
 
 def main():
     while True:
         global canSendCommand
+        global initDistance
+        global totalDistance
         try:
             if canSendCommand==True and canRecvCommand==True:
                 time.sleep(0.5)
                 if drone.initMode:
-                    # write("SDK MODE\n")
                     drone.sdkMode(sock)
                 else:
-                    # calculate distance
-                    # calculate bearing
-                    distance, locBearing, sats = gps.calculateDistance(point2[0], point2[1])
+                    distance, locBearing = gps.calculateDistance(point2[0], point2[1])
                     droneBearing = compass.getDroneBearing()
+                    if initDistance < 0:
+                        initDistance = distance
+                    if distance <= 5 or totalDistance >= initDistance:
+                        drone.atDest = True
                     if drone.status == drone.landStatus:
-                        # write("TAKEOFF\n")
                         drone.takeoff(sock)
                     else:
+                        checkDroneBearing(droneBearing, locBearing)
                         if drone.atDest == True:
-                            # write("LAND\n")
                             drone.landing(sock)
                             print("Landing...")
                             canSendCommand = False
                             while True:
                                 if canSendCommand==True and canRecvCommand==True:
                                     time.sleep(0.5)
-                                    # write("STOP MOTOR\n")
                                     drone.stopMotor(sock)
                                     break
                             break
                         else:
-                            # write("MUTER\n")
-                            setDroneHeading(droneBearing, locBearing)
-                    # else: 
-                    # check if distance < 1 then land
-                    # else check rotation cw or ccw, if distance > 5m, forward 500 else forward distance
+                            # setDroneHeading(droneBearing, locBearing)
+                            # drone maju ke depan distance x 100
+                            if distance >= 5:
+                                drone.moveForward(500, sock)
+                            else:
+                                drone.moveForward(distance*100, sock)
+                            totalDistance = totalDistance + distance
                 canSendCommand = False
         except KeyboardInterrupt:
             print("interrupt")
