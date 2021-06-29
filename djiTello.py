@@ -3,14 +3,21 @@ class DjiTello:
     atDest = False
     landStatus = "land"
     takeoffStatus = "takeoff"
+    lastCommand = ""
+    FILE = ""
 
     def __init__(self, address='192.168.10.1', port=8889):
         self.address = (address, port)
         self.status = self.landStatus
     
+    def write(self, text):
+        with open(self.FILE, 'a') as f:
+            f.write(text)
+
     def sdkMode(self, sock):
         if self.initMode:
             msg = "command"
+            self.lastCommand = msg
             self.sendCommand(msg, sock)
             self.initMode = False
         else: 
@@ -19,6 +26,7 @@ class DjiTello:
     def takeoff(self, sock):
         if self.initMode == False:
             msg = "takeoff"
+            self.lastCommand = msg
             self.status = self.takeoffStatus
             self.atDest = False
             self.sendCommand(msg, sock)
@@ -28,6 +36,7 @@ class DjiTello:
     def landing(self, sock):
         if self.initMode == False:
             msg = "land"
+            self.lastCommand = msg
             self.status = self.landStatus
             self.sendCommand(msg, sock)
         else:
@@ -41,6 +50,7 @@ class DjiTello:
     def moveForward(self, distance, sock):
         if self.initMode == False:
             msg = "forward " + str(distance)
+            self.lastCommand = msg
             self.sendCommand(msg, sock)
         else:
             self.printError()
@@ -48,6 +58,7 @@ class DjiTello:
     def moveClockWise(self, degree, sock):
         if self.initMode == False:
             msg = "cw " + str(degree)
+            self.lastCommand = msg
             self.sendCommand(msg, sock)
         else:
             self.printError()
@@ -55,6 +66,7 @@ class DjiTello:
     def moveCounterClockWise(self, degree, sock):
         if self.initMode == False:
             msg = "ccw " + str(degree)
+            self.lastCommand = msg
             self.sendCommand(msg, sock)
         else:
             self.printError()
@@ -62,11 +74,21 @@ class DjiTello:
     def getBattery(self, sock):
         if self.initMode == False:
             msg = "battery?"
+            self.lastCommand = msg
+            self.sendCommand(msg, sock)
+        else:
+            self.printError()
+    
+    def moveUp(self, up, sock):
+        if self.initMode == False:
+            msg = "up " + str(up)
+            self.lastCommand = msg
             self.sendCommand(msg, sock)
         else:
             self.printError()
     
     def sendCommand(self, msg, sock):
+        self.write("{}\n".format(msg))
         command = msg.encode(encoding="utf-8")
         print(command)
         sent = sock.sendto(command, self.address)
